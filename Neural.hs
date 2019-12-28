@@ -85,3 +85,14 @@ getErrors layers states label = errWdInput:nextErrs
           nextErrs = getErrors (tail layers) (tail states) label
           (nextWs, nextBs) = head $ tail layers
           (zs, as) = head states
+
+sgd :: (Floating t) => Network t -> [(Matrix t, Matrix t)] -> Network t
+sgd net dataset = dropWhile badPerformance nets
+    where badPerformance n = performance n dataset < 1 -- ??
+          nets = [Network bs ws | (bs, ws) <- paramUpdates]
+          paramUpdates = idontknow -- ??
+
+performance :: (Floating t) => Network t -> [(Matrix t, Matrix t)] -> t
+performance net dataset = sum costs / length costs
+    where costs = [quadCost out label | (input, label) <- dataset]
+          out = infer input net
