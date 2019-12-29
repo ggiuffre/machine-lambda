@@ -1,13 +1,12 @@
 module Neural
 ( Network (..)
 , infer
-, analyze
-, getErrors
-, gradientWeights
-, gradientBiases
+, sgdEpoch
 ) where
 
-import Data.Matrix (Matrix, elementwise, fromLists, toLists, transpose)
+import System.Random (randomRIO)
+import Data.List (genericLength)
+import Data.Matrix (Matrix, elementwise, fromLists, toLists, transpose, scaleMatrix)
 
 data Network t = Network { biases :: [Matrix t]
                          , weights :: [Matrix t]
@@ -86,13 +85,23 @@ getErrors layers states label = errWdInput:nextErrs
           (nextWs, nextBs) = head $ tail layers
           (zs, as) = head states
 
-sgd :: (Floating t) => Network t -> [(Matrix t, Matrix t)] -> Network t
-sgd net dataset = dropWhile badPerformance nets
-    where badPerformance n = performance n dataset < 1 -- ??
-          nets = [Network bs ws | (bs, ws) <- paramUpdates]
-          paramUpdates = idontknow -- ??
+sgdEpoch :: (Floating t) => Network t -> [(Matrix t, Matrix t)] -> t -> [Network t]
+sgdEpoch net [] eta = []
+sgdEpoch net dataset eta = newNet:nextUpdates
+    where nextUpdates = sgdEpoch newNet (tail dataset) eta
+          newNet = Network newBiases newWeights
+          newBiases  = map matsDiff (zip (biases  net) correctionsB)
+          newWeights = map matsDiff (zip (weights net) correctionsW)
+          matsDiff (m1, m2) = m1 - m2
+          correctionsB = map (scaleMatrix eta) (gradientBiases  activs errors)
+          correctionsW = map (scaleMatrix eta) (gradientWeights activs errors)
+          errors = getErrors (zip (weights net) (biases net)) states label
+          input  = fst $ head dataset
+          label  = snd $ head dataset
+          activs = input:(map snd states)
+          states = analyze input net
 
 performance :: (Floating t) => Network t -> [(Matrix t, Matrix t)] -> t
-performance net dataset = sum costs / length costs
-    where costs = [quadCost out label | (input, label) <- dataset]
-          out = infer input net
+performance net dataset = sum costs / genericLength costs
+    where costs = [cost input label | (input, label) <- dataset]
+          cost input label = quadCost (infer input net) label
