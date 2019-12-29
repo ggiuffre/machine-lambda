@@ -4,11 +4,12 @@ module Neural
 , infer
 , sgdUpdates
 , performance
+, shuffle
 ) where
 
 
 
-import System.Random (randomRIO)
+import System.Random (randomRs, mkStdGen)
 import Data.List (genericLength)
 import Data.Matrix (Matrix, elementwise, fromLists, toLists, transpose, scaleMatrix)
 
@@ -137,7 +138,6 @@ performance net dataset = sum costs / genericLength costs
           cost input label = quadCost (infer input net) label
 
 -- TODO
-shuffle x = if length x < 2 then return x else do
-    i <- System.Random.randomRIO (0, length(x)-1)
-    r <- shuffle (take i x ++ drop (i+1) x)
-    return (x!!i : r)
+shuffle list seed = if length list < 2 then list else (list!!i : r)
+    where i = head $ randomRs (0, length list - 1) (mkStdGen seed) :: Int
+          r = shuffle (take i list ++ drop (i+1) list) (seed + 1)

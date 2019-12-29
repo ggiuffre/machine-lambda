@@ -24,4 +24,4 @@ label3 = Mat.fromLists [[1.0]]
 label4 = Mat.fromLists [[0.0]]
 
 -- dataset = zip [input1, input2, input3, input4] [label1, label2, label3, label4]
-dataset = zip [input1, input2, input3, input4, input3, input2, input1, input4, input3, input2, input4, input1, input1, input2, input3, input4, input3, input2, input1, input4, input3, input4, input2, input1, input3, input4, input3, input2] [label1, label2, label3, label4, label3, label2, label1, label4, label3, label2, label4, label1, label1, label2, label3, label4, label3, label2, label1, label4, label3, label4, label2, label1, label3, label4, label3, label2]
+dataset = zip [input1, input2, input3, input4, input3, input2, input1, input4, input3, input2, input4, input1, input1, input2, input3, input4, input3, input2, input1, input4, input3, input4, input2, input1, input3, input4, input3, input2] [label1, label2, label3, label4, label3, label2, label1, label4, label3, label2, label4, label1, label1, label2, label3, label4, label3, label2, label1, label4, label3, label4, label2, label1, label3, label4, label3, label2] -- temporary hack to replace true randomness...
