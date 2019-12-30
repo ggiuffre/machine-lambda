@@ -1,5 +1,5 @@
 import qualified Data.Matrix as Mat
-import Neural
+import DeepNN
 
 -- orNet = zip [Mat.fromLists [[-1.0]]] [Mat.fromLists [[2.0, 2.0]]]
 -- andNet = zip [Mat.fromLists [[-3.0]]] [Mat.fromLists [[2.0, 2.0]]]

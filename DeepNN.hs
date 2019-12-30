@@ -1,4 +1,4 @@
-module Neural
+module DeepNN
 ( Network
 , Layer
 , infer
