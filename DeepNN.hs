@@ -30,6 +30,31 @@ type Dataset t = [(Matrix t, Matrix t)]
 
 
 
+-- a class for cost functions
+class CostFunction f where
+    appl :: (Floating t) => f -> (Matrix t -> Matrix t -> t)
+    oErr :: (Floating t) => f -> (Matrix t -> Matrix t -> Matrix t)
+
+data QuadCost = QuadCost
+data CrossEntCost = CrossEntCost
+
+instance CostFunction QuadCost where
+    appl costF = f
+        where f prediction label = (sum (label - prediction) ^ 2) / 2
+    oErr costF = f'
+        where f' zs label = elementwise (*) ((sigm zs) - label) (sigm' zs)
+              sigm  = foreach sigmoid
+              sigm' = foreach sigmoid'
+
+instance CostFunction CrossEntCost where
+    appl costF = f
+        where f prediction label = - sum (elementwise elementEntropy prediction label)
+              elementEntropy a y = (y * log a) + ((1-y) * log (1-a))
+    oErr costF = f'
+        where f' zs label = (foreach sigmoid zs) - label
+
+
+
 -- list of matrices containing biases, layer by layer
 biases :: Network t -> [BiasMatrix t]
 biases net = map fst net
@@ -49,14 +74,6 @@ sigmoid' x = sigmoid x * (1.0 - sigmoid x)
 -- result of applying a function to each element of a matrix
 foreach :: (t -> t) -> Matrix t -> Matrix t
 foreach func mat = fromLists $ map (map func) $ toLists mat
-
--- quadratic cost function of a prediction, given a label (ground truth)
-quadCost :: (Floating t) => Matrix t -> Matrix t -> t
-quadCost prediction label = sum (foreach (^2) (label - prediction)) / 2
-
--- derivative of the quadratic cost function w.r.t. a predicted value
-quadCost' :: (Floating t) => Matrix t -> Matrix t -> Matrix t
-quadCost' prediction label = prediction - label
 
 -- output of a neural network given some input
 infer :: (Floating t) => Matrix t -> Network t -> Matrix t
@@ -98,9 +115,9 @@ gradientBiases inputs errors = errors
 -- partial derivatives of a cost function w.r.t. the weighted inputs of layers in a network
 deltas :: (Floating t) => Network t -> [(Matrix t, Matrix t)] -> Matrix t -> [Matrix t]
 deltas (l:[]) states label = [errWdInput]
-    where errWdInput = elementwise (*) errActivation (foreach sigmoid' zs)
-          errActivation = (as - label)
+    where errWdInput = (oErr costF) zs label
           (zs, as) = head states
+          costF = CrossEntCost -- TODO needs to become a parameter of "deltas"
 deltas net states label = errWdInput:nextErrs
     where errWdInput = elementwise (*) errActivation (foreach sigmoid' zs)
           errActivation = transpose nextWs * (head nextErrs)
@@ -131,11 +148,11 @@ sgdUpdates net dataset eta = newNet:nextNets
     where newNet = last $ sgdEpoch net dataset eta
           nextNets = sgdUpdates newNet dataset eta
 
--- average quadratic cost of a network on a dataset
-performance :: (Floating t) => Network t -> Dataset t -> t
-performance net dataset = sum costs / genericLength costs
+-- quadratic cost of a network on a dataset
+performance :: (CostFunction f, Floating t) => f -> Network t -> Dataset t -> t
+performance costF net dataset = sum costs / genericLength costs
     where costs = [cost input label | (input, label) <- dataset]
-          cost input label = quadCost (infer input net) label
+          cost input label = (appl costF) (infer input net) label
 
 -- TODO
 shuffle list seed = if length list < 2 then list else (list!!i : r)
