@@ -1,5 +1,6 @@
 module Dataset
-( fromCsv
+( Dataset (..)
+, fromCsv
 ) where
 
 

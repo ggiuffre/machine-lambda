@@ -3,13 +3,14 @@ module DeepNN
 , Layer
 , infer
 , sgdUpdates
+, shuffSgdUpdates
 , performance
 , shuffle
 ) where
 
 
 
-import System.Random (randomRs, mkStdGen)
+import System.Random (StdGen, random, randomRs, mkStdGen)
 import Data.List (genericLength)
 import Data.Matrix (Matrix, elementwise, fromLists, toLists, transpose, scaleMatrix)
 
@@ -148,13 +149,23 @@ sgdUpdates net dataset eta = newNet:nextNets
     where newNet = last $ sgdEpoch net dataset eta
           nextNets = sgdUpdates newNet dataset eta
 
+-- infinite list of networks whose parameters are changed with SGD throughout (infinite) epochs, each time shuffling the dataset
+shuffSgdUpdates :: (Floating t) => Network t -> Dataset t -> t -> StdGen -> [Network t]
+shuffSgdUpdates net dataset eta seed = newNet:nextNets
+    where newNet = last $ sgdEpoch net shuffledDataset eta
+          nextNets = shuffSgdUpdates newNet shuffledDataset eta newSeed
+          shuffledDataset = shuffle dataset seed
+          (randInt, newSeed) = random seed :: (Int, StdGen)
+
 -- quadratic cost of a network on a dataset
 performance :: (CostFunction f, Floating t) => f -> Network t -> Dataset t -> t
 performance costF net dataset = sum costs / genericLength costs
     where costs = [cost input label | (input, label) <- dataset]
           cost input label = (appl costF) (infer input net) label
 
--- TODO
+-- random permutation of the elements in a list
+shuffle :: [a] -> StdGen -> [a]
 shuffle list seed = if length list < 2 then list else (list!!i : r)
-    where i = head $ randomRs (0, length list - 1) (mkStdGen seed) :: Int
-          r = shuffle (take i list ++ drop (i+1) list) (seed + 1)
+    where i = head $ randomRs (0, length list - 1) newSeed :: Int
+          r = shuffle (take i list ++ drop (i+1) list) newSeed
+          (randInt, newSeed) = random seed :: (Int, StdGen)
