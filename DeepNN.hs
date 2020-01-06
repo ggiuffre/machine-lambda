@@ -6,13 +6,14 @@ module DeepNN
 , shuffSgdUpdates
 , performance
 , shuffle
+, randNet
 ) where
 
 
 
 import System.Random (StdGen, random, randomRs, mkStdGen)
 import Data.List (genericLength)
-import Data.Matrix (Matrix, elementwise, fromLists, toLists, transpose, scaleMatrix)
+import Data.Matrix (Matrix, elementwise, fromLists, fromList, toLists, transpose, scaleMatrix)
 
 
 
@@ -151,11 +152,11 @@ sgdUpdates net dataset eta = newNet:nextNets
 
 -- infinite list of networks whose parameters are changed with SGD throughout (infinite) epochs, each time shuffling the dataset
 shuffSgdUpdates :: (Floating t) => Network t -> Dataset t -> t -> StdGen -> [Network t]
-shuffSgdUpdates net dataset eta seed = newNet:nextNets
+shuffSgdUpdates net dataset eta gen = newNet:nextNets
     where newNet = last $ sgdEpoch net shuffledDataset eta
-          nextNets = shuffSgdUpdates newNet shuffledDataset eta newSeed
-          shuffledDataset = shuffle dataset seed
-          (randInt, newSeed) = random seed :: (Int, StdGen)
+          nextNets = shuffSgdUpdates newNet shuffledDataset eta newGen
+          shuffledDataset = shuffle dataset gen
+          (randInt, newGen) = random gen :: (Int, StdGen)
 
 -- quadratic cost of a network on a dataset
 performance :: (CostFunction f, Floating t) => f -> Network t -> Dataset t -> t
@@ -165,7 +166,22 @@ performance costF net dataset = sum costs / genericLength costs
 
 -- random permutation of the elements in a list
 shuffle :: [a] -> StdGen -> [a]
-shuffle list seed = if length list < 2 then list else (list!!i : r)
-    where i = head $ randomRs (0, length list - 1) newSeed :: Int
-          r = shuffle (take i list ++ drop (i+1) list) newSeed
-          (randInt, newSeed) = random seed :: (Int, StdGen)
+shuffle list gen = if length list < 2 then list else (list!!i : r)
+    where i = head $ randomRs (0, length list - 1) newGen :: Int
+          r = shuffle (take i list ++ drop (i+1) list) newGen
+          (randInt, newGen) = random gen :: (Int, StdGen)
+
+-- network with Float weights sampled uniformly at random from a given range
+-- TODO: Gaussian instead of uniform
+randNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
+randNet range [] _ = []
+randNet range (size:[]) _ = []
+randNet range sizes gen = randLayer:nextRandLayers
+    where randLayer = (randBiases, randWeights)
+          nextRandLayers = randNet range (outSize:nextSizes) newGen
+          randBiases = fromList outSize 1 $ biasList
+          randWeights = fromList outSize inSize $ weightList
+          (biasList, weightList) = splitAt outSize randNums
+          randNums = take (outSize * (inSize + 1)) $ randomRs range gen
+          (_, newGen) = random gen :: (Int, StdGen)
+          inSize:outSize:nextSizes = sizes
