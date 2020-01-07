@@ -20,6 +20,7 @@ data Dataset t = DataHeap [Sample t] | DataMap [Sample t] [Label t]
 
 
 
+-- dataset of 1D Float samples, taken from a given CSV file
 fromCsv :: String -> [Matrix Float]
 fromCsv samples = [matrix $ values line | line <- lines samples]
     where values l = filter isValue $ groupBy ((==) `on` not . isDelimiter) $ l
