@@ -4,6 +4,8 @@ A purely functional implementation of deep neural nets, stochastic gradient desc
 
 ## Usage
 
+The file `example.hs` shows how to use this software.
+
 The `DeepNN` module exports data structures and functions to create, train, and use deep feed-forward neural networks:
 
 * `Network` and `Layer` are types that represent respectively a deep neural network and a single layer;
