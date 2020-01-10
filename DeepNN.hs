@@ -9,8 +9,7 @@ module DeepNN
 , shuffSgdUpdates
 , performance
 , shuffle
-, randUnifNet
-, randGaussNet
+, randNet
 ) where
 
 
@@ -181,27 +180,13 @@ shuffle list gen = if length list < 2 then list else (list!!i : r)
           r = shuffle (take i list ++ drop (i+1) list) newGen
           (randInt, newGen) = random gen :: (Int, StdGen)
 
--- network with Float weights sampled uniformly at random from a given range
-randUnifNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
-randUnifNet range [] _ = []
-randUnifNet range (size:[]) _ = []
-randUnifNet range sizes gen = randLayer:nextRandLayers
+-- network with Float weights sampled at random from a normal distribution with given mean and std. deviation
+randNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
+randNet params [] _ = []
+randNet params (size:[]) _ = []
+randNet params sizes gen = randLayer:nextRandLayers
     where randLayer = (randBiases, randWeights)
-          nextRandLayers = randUnifNet range (outSize:nextSizes) newGen
-          randBiases = fromList outSize 1 $ biasList
-          randWeights = fromList outSize inSize $ weightList
-          (biasList, weightList) = splitAt outSize randNums
-          randNums = take (outSize * (inSize + 1)) $ randomRs range gen
-          (_, newGen) = random gen :: (Int, StdGen)
-          inSize:outSize:nextSizes = sizes
-
--- network with Float weights sampled at random from a normal distribution with the given mean and std. deviation
-randGaussNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
-randGaussNet params [] _ = []
-randGaussNet params (size:[]) _ = []
-randGaussNet params sizes gen = randLayer:nextRandLayers
-    where randLayer = (randBiases, randWeights)
-          nextRandLayers = randGaussNet params (outSize:nextSizes) newGen
+          nextRandLayers = randNet params (outSize:nextSizes) newGen
           randBiases = fromList outSize 1 $ biasList
           randWeights = fromList outSize inSize $ weightList
           (biasList, weightList) = splitAt outSize randNums
@@ -209,4 +194,18 @@ randGaussNet params sizes gen = randLayer:nextRandLayers
           (_, newGen) = random gen :: (Int, StdGen)
           inSize:outSize:nextSizes = sizes
 
--- TODO: gaussian weights, mini-batch size, regularization parameter, cost function parameter
+-- network with Float weights sampled uniformly at random from a given range
+randUniformNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
+randUniformNet range [] _ = []
+randUniformNet range (size:[]) _ = []
+randUniformNet range sizes gen = randLayer:nextRandLayers
+    where randLayer = (randBiases, randWeights)
+          nextRandLayers = randUniformNet range (outSize:nextSizes) newGen
+          randBiases = fromList outSize 1 $ biasList
+          randWeights = fromList outSize inSize $ weightList
+          (biasList, weightList) = splitAt outSize randNums
+          randNums = take (outSize * (inSize + 1)) $ randomRs range gen
+          (_, newGen) = random gen :: (Int, StdGen)
+          inSize:outSize:nextSizes = sizes
+
+-- TODO: mini-batch size, regularization parameter, cost function parameter
