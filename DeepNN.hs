@@ -9,12 +9,14 @@ module DeepNN
 , shuffSgdUpdates
 , performance
 , shuffle
-, randNet
+, randUnifNet
+, randGaussNet
 ) where
 
 
 
 import System.Random (StdGen, random, randomRs, mkStdGen)
+import Data.Random.Normal (normals')
 import Data.List (genericLength)
 import Data.Matrix (Matrix, elementwise, fromLists, fromList, toLists, transpose, scaleMatrix)
 
@@ -66,7 +68,7 @@ biases :: Network t -> [BiasMatrix t]
 biases net = map fst net
 
 -- list of matrices containing the weights of each layer in a given network
-weights :: Network t -> [BiasMatrix t]
+weights :: Network t -> [WeightsMatrix t]
 weights net = map snd net
 
 -- sigmoid activation of a given value
@@ -131,22 +133,26 @@ deltas net states label = errWdInput:nextErrs
           (nextBs, nextWs) = head $ tail net
           (zs, as) = head states
 
--- list of networks whose parameters are updated with SGD throughout an epoch
+-- list of networks whose parameters are updated with (online) SGD throughout an epoch
 sgdEpoch :: (Floating t) => Network t -> Dataset t -> t -> [Network t]
 sgdEpoch net [] eta = []
 sgdEpoch net dataset eta = newNet:nextUpdates
-    where nextUpdates = sgdEpoch newNet (tail dataset) eta
+    where nextUpdates = sgdEpoch newNet nextSamples eta
           newNet = zip newBiases newWeights
-          newBiases  = map matsDiff (zip (biases  net) correctionsB)
-          newWeights = map matsDiff (zip (weights net) correctionsW)
+          newBiases  = map matsDiff (zip (biases net) correctionsB)
+          newWeights = map matsDiff (zip (l2Reg $ weights net) correctionsW)
           matsDiff (m1, m2) = m1 - m2
           correctionsB = map (scaleMatrix eta) (gradientBiases  activs errors)
           correctionsW = map (scaleMatrix eta) (gradientWeights activs errors)
           errors = deltas net states label
-          input  = fst $ head dataset
-          label  = snd $ head dataset
+          (input, label):nextSamples = dataset
           activs = input:(map snd states)
           states = analyze input net
+
+-- L2 regularization of the weights of a network, before updating them with SGD
+l2Reg :: (Floating t) => [WeightsMatrix t] -> [WeightsMatrix t]
+l2Reg ws = [scaleMatrix (1 - lambda / (fromIntegral $ length w)) w | w <- ws]
+    where lambda = 0.002
 
 -- infinite list of networks whose parameters are updated with SGD throughout (infinite) epochs
 sgdUpdates :: (Floating t) => Network t -> Dataset t -> t -> [Network t]
@@ -176,16 +182,31 @@ shuffle list gen = if length list < 2 then list else (list!!i : r)
           (randInt, newGen) = random gen :: (Int, StdGen)
 
 -- network with Float weights sampled uniformly at random from a given range
--- TODO: Gaussian instead of uniform
-randNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
-randNet range [] _ = []
-randNet range (size:[]) _ = []
-randNet range sizes gen = randLayer:nextRandLayers
+randUnifNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
+randUnifNet range [] _ = []
+randUnifNet range (size:[]) _ = []
+randUnifNet range sizes gen = randLayer:nextRandLayers
     where randLayer = (randBiases, randWeights)
-          nextRandLayers = randNet range (outSize:nextSizes) newGen
+          nextRandLayers = randUnifNet range (outSize:nextSizes) newGen
           randBiases = fromList outSize 1 $ biasList
           randWeights = fromList outSize inSize $ weightList
           (biasList, weightList) = splitAt outSize randNums
           randNums = take (outSize * (inSize + 1)) $ randomRs range gen
           (_, newGen) = random gen :: (Int, StdGen)
           inSize:outSize:nextSizes = sizes
+
+-- network with Float weights sampled at random from a normal distribution with the given mean and std. deviation
+randGaussNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
+randGaussNet params [] _ = []
+randGaussNet params (size:[]) _ = []
+randGaussNet params sizes gen = randLayer:nextRandLayers
+    where randLayer = (randBiases, randWeights)
+          nextRandLayers = randGaussNet params (outSize:nextSizes) newGen
+          randBiases = fromList outSize 1 $ biasList
+          randWeights = fromList outSize inSize $ weightList
+          (biasList, weightList) = splitAt outSize randNums
+          randNums = take (outSize * (inSize + 1)) $ normals' params gen
+          (_, newGen) = random gen :: (Int, StdGen)
+          inSize:outSize:nextSizes = sizes
+
+-- TODO: gaussian weights, mini-batch size, regularization parameter, cost function parameter
