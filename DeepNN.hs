@@ -64,11 +64,11 @@ instance CostFunction CrossEntCost where
 
 -- list of matrices containing the biases of each layer in a given network
 biases :: Network t -> [BiasMatrix t]
-biases net = map fst net
+biases = map fst
 
 -- list of matrices containing the weights of each layer in a given network
 weights :: Network t -> [WeightsMatrix t]
-weights net = map snd net
+weights = map snd
 
 -- sigmoid activation of a given value
 sigmoid :: (Floating t) => t -> t
@@ -84,7 +84,7 @@ foreach func mat = fromLists $ map (map func) $ toLists mat
 
 -- output of a neural network, given some input
 infer :: (Floating t) => Matrix t -> Network t -> Matrix t
-infer input net = foldl activation input net
+infer = foldl activation
 
 -- activation and w.ed input of each layer, given an input to the whole network
 analyze :: (Floating t) => Matrix t -> Network t -> [(Matrix t, Matrix t)]
