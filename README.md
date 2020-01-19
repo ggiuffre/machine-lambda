@@ -14,11 +14,11 @@ The `DeepNN` module exports data structures and functions to create, train, and 
 * `sgdUpdates` and `shuffSgdUpdates` are an infinite list of networks whose parameters are updated with SGD throughout (infinite) epochs, respectively with and without shuffling of the dataset at each epoch;
 * `performance` is the cost of a neural network on a dataset, for a given cost function;
 * `shuffle` is a utility function to shuffle a list of things;
-* `randNet` is a network with random `Float` weights sampled from a normal distribution with given mean and standard deviation.
+* `randNet` is a network with random `Double` weights sampled from a normal distribution with given mean and standard deviation.
 
 The `Dataset` module currently exports just one function:
 
-* `fromCsv` is a dataset of 1D `Float` samples, taken from a given CSV file.
+* `fromCsv` is a dataset of 1D `Double` samples, taken from a given CSV file.
 
 To use a module (`DeepNN` for example), have `DeepNN.hs` in the search path of GHC, then `import DeepNN` inside your Haskell program.
 

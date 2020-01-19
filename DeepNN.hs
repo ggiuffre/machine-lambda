@@ -45,7 +45,7 @@ class CostFunction f where
 data QuadCost = QuadCost
 instance CostFunction QuadCost where
     appl costF = f
-        where f prediction label = (sum (label - prediction) ^ 2) / 2
+        where f prediction label = (sum $ foreach (^2) (label - prediction)) / 2
     oErr costF = f'
         where f' zs label = elementwise (*) ((sigm zs) - label) (sigm' zs)
               sigm  = foreach sigmoid
@@ -138,9 +138,8 @@ sgdEpoch net [] eta = []
 sgdEpoch net dataset eta = newNet:nextUpdates
     where nextUpdates = sgdEpoch newNet nextSamples eta
           newNet = zip newBiases newWeights
-          newBiases  = map matsDiff (zip (biases net) correctionsB)
-          newWeights = map matsDiff (zip (l2Reg $ weights net) correctionsW)
-          matsDiff (m1, m2) = m1 - m2
+          newBiases  = zipWith (-) (biases net) correctionsB
+          newWeights = zipWith (-) (l2Reg $ weights net) correctionsW
           correctionsB = map (scaleMatrix eta) (gradientBiases  activs errors)
           correctionsW = map (scaleMatrix eta) (gradientWeights activs errors)
           errors = deltas net states label
@@ -169,7 +168,7 @@ shuffSgdUpdates net dataset eta gen = newNet:nextNets
 
 -- cost of a network on a dataset, for a given cost function
 performance :: (CostFunction f, Floating t) => f -> Network t -> Dataset t -> t
-performance costF net dataset = sum costs / genericLength costs
+performance costF net dataset = (sum costs) / (genericLength costs)
     where costs = [cost input label | (input, label) <- dataset]
           cost input label = (appl costF) (infer input net) label
 
@@ -180,22 +179,8 @@ shuffle list gen = if length list < 2 then list else (list!!i : r)
           r = shuffle (take i list ++ drop (i+1) list) newGen
           (randInt, newGen) = random gen :: (Int, StdGen)
 
--- network with Float weights sampled at random from a normal distribution with given mean and std. deviation
-randNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
-randNet params [] _ = []
-randNet params (size:[]) _ = []
-randNet params sizes gen = randLayer:nextRandLayers
-    where randLayer = (randBiases, randWeights)
-          nextRandLayers = randNet params (outSize:nextSizes) newGen
-          randBiases = fromList outSize 1 $ biasList
-          randWeights = fromList outSize inSize $ weightList
-          (biasList, weightList) = splitAt outSize randNums
-          randNums = take (outSize * (inSize + 1)) $ normals' params gen
-          (_, newGen) = random gen :: (Int, StdGen)
-          inSize:outSize:nextSizes = sizes
-
--- network with Float weights sampled uniformly at random from a given range
-randUniformNet :: (Float, Float) -> [Int] -> StdGen -> Network Float
+-- network with Double weights sampled uniformly at random from a given range
+randUniformNet :: (Double, Double) -> [Int] -> StdGen -> Network Double
 randUniformNet range [] _ = []
 randUniformNet range (size:[]) _ = []
 randUniformNet range sizes gen = randLayer:nextRandLayers
@@ -207,5 +192,20 @@ randUniformNet range sizes gen = randLayer:nextRandLayers
           randNums = take (outSize * (inSize + 1)) $ randomRs range gen
           (_, newGen) = random gen :: (Int, StdGen)
           inSize:outSize:nextSizes = sizes
+
+-- network with Double weights sampled at random from a normal distribution with mean 0 and std. deviation sqrt(n_in) for each layer
+randNet :: [Int] -> StdGen -> Network Double
+randNet [] _ = []
+randNet (size:[]) _ = []
+randNet sizes gen = randLayer:nextRandLayers
+    where randLayer = (randBiases, randWeights)
+          nextRandLayers = randNet (outSize:nextSizes) newGen
+          randBiases = fromList outSize 1 $ biasList
+          randWeights = fromList outSize inSize $ weightList
+          (biasList, weightList) = splitAt outSize randNums
+          randNums = take (outSize * (inSize + 1)) $ normals' (0, stdDev) gen
+          (_, newGen) = random gen :: (Int, StdGen)
+          inSize:outSize:nextSizes = sizes
+          stdDev = 1.0 / sqrt (fromIntegral inSize)
 
 -- TODO: mini-batch size, regularization parameter, cost function parameter

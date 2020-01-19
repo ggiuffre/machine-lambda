@@ -20,11 +20,11 @@ data Dataset t = DataHeap [Sample t] | DataMap [Sample t] [Label t]
 
 
 
--- dataset of 1D Float samples, taken from a given CSV file
-fromCsv :: String -> [Matrix Float]
+-- dataset of 1D Double samples, taken from a given CSV file
+fromCsv :: String -> [Matrix Double]
 fromCsv samples = [matrix $ values line | line <- lines samples]
     where values l = filter isValue $ groupBy ((==) `on` not . isDelimiter) $ l
           isValue = not . any isDelimiter
           isDelimiter c = c == ',' || isSeparator c
           matrix l = fromLists $ map parseRow l
-          parseRow r = [read r :: Float]
+          parseRow r = [read r :: Double]

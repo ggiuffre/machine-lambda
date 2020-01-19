@@ -13,11 +13,11 @@ main = do
     randGen <- getStdGen
     let dataMatrices = fromCsv csvData
         labelsMatrices = fromCsv csvLabels
-        dataset = take 100 $ zip dataMatrices labelsMatrices
-        net1 = randGaussNet (0.0, 1.0) [2, 2, 1] randGen
+        dataset = take 200 $ zip dataMatrices labelsMatrices
+        net1 = randNet [2, 2, 1] randGen
     randGen <- newStdGen
     let (randInt, gen) = random randGen :: (Int, StdGen)
-        epochs = shuffSgdUpdates net1 dataset 0.8 gen
+        epochs = shuffSgdUpdates net1 dataset 0.25 gen
         net2 = last $ take 1000 epochs
     print $ performance QuadCost net2 dataset
     sequence $ [print $ infer m net2 | m <- dataMatrices]
