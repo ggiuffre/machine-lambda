@@ -20,6 +20,10 @@ The `Dataset` module currently exports just one function:
 
 * `fromCsv` is a dataset of 1D `Double` samples, taken from a given CSV file.
 
+The `LinReg` module currently exports just one function:
+
+* `coeffs` are the coefficients of a linear regression on a given dataset.
+
 To use a module (`DeepNN` for example), have `DeepNN.hs` in the search path of GHC, then `import DeepNN` inside your Haskell program.
 
 ## Dependencies
