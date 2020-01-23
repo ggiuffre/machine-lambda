@@ -7,7 +7,8 @@ module DeepNN
 , infer
 , sgdUpdates
 , shuffSgdUpdates
-, performance
+, cost
+, accuracy
 , shuffle
 , randNet
 ) where
@@ -17,7 +18,7 @@ module DeepNN
 import System.Random (StdGen, random, randomRs, mkStdGen)
 import Data.Random.Normal (normals')
 import Data.List (genericLength)
-import Data.Matrix (Matrix, elementwise, fromLists, fromList, toLists, transpose, scaleMatrix)
+import Data.Matrix (Matrix, elementwise, fromLists, fromList, toLists, toList, transpose, scaleMatrix)
 
 
 
@@ -167,10 +168,19 @@ shuffSgdUpdates net dataset eta gen = newNet:nextNets
           (randInt, newGen) = random gen :: (Int, StdGen)
 
 -- cost of a network on a dataset, for a given cost function
-performance :: (CostFunction f, Floating t) => f -> Network t -> Dataset t -> t
-performance costF net dataset = (sum costs) / (genericLength costs)
+cost :: (CostFunction f, Floating t) => f -> Network t -> Dataset t -> t
+cost costF net dataset = (sum costs) / (genericLength costs)
     where costs = [cost input label | (input, label) <- dataset]
           cost input label = (appl costF) (infer input net) label
+
+-- fraction of samples correctly classified by a network
+accuracy :: (Floating t, RealFrac t) => Network t -> Dataset t -> t
+accuracy net dataset = (sum outcomes) / (genericLength dataset)
+    where outcomes = [outcome input label | (input, label) <- dataset]
+          outcome x y = boolToNum $ roundedVect (infer x net) == roundedVect y
+          roundedVect v = (map round $ toList v)
+          boolToNum True = 1.0
+          boolToNum _    = 0.0
 
 -- random permutation of the elements in a list, given a rand. number generator
 shuffle :: [a] -> StdGen -> [a]

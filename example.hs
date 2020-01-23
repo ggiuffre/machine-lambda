@@ -8,16 +8,16 @@ import DeepNN
 
 -- example use
 main = do
-    csvData <- readFile "xor_train_data.csv"
-    csvLabels <- readFile "xor_train_labels.csv"
+    csvData <- readFile "mnist_train_data.csv"
+    csvLabels <- readFile "mnist_train_labels.csv"
     randGen <- getStdGen
     let dataMatrices = fromCsv csvData
         labelsMatrices = fromCsv csvLabels
         dataset = take 200 $ zip dataMatrices labelsMatrices
-        net1 = randNet [2, 2, 1] randGen
+        net1 = randNet [784, 30, 10] randGen
     randGen <- newStdGen
     let (randInt, gen) = random randGen :: (Int, StdGen)
         epochs = shuffSgdUpdates net1 dataset 0.25 gen
-        net2 = last $ take 1000 epochs
-    print $ performance QuadCost net2 dataset
-    sequence $ [print $ infer m net2 | m <- dataMatrices]
+        net2 = last $ take 10 epochs
+    print $ accuracy net2 dataset
+    -- sequence $ [print $ infer m net2 | m <- dataMatrices]
