@@ -23,4 +23,4 @@ main = do
         net2 = last $ take 1000 epochs
 
     print $ binAccuracy net2 dataset
-    sequence $ [print $ (y, infer x net2) | (x, y) <- dataset]
+    sequence $ [print $ (y, output x net2) | (x, y) <- dataset]

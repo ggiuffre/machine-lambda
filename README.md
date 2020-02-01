@@ -2,15 +2,26 @@
 
 A purely functional implementation of deep feed-forward neural networks, trainable with stochastic gradient descent.
 
+Why functional programming with neural networks? The goal of this library is **mathematical clarity**: the close coupling between functional programming and mathematical expressions allows to manipulate neural networks (or anything that can be expressed mathematically) by declaring expressions, rather than by implementing algorithms.
+
+Approaching a problem by declaring its solution (rather than implementing an algorithm to find the solution) allows to be succint and clear. For example, here's the function that computes the output of a neural network for a given input:
+
+```haskell
+output :: (Floating t) => Matrix t -> Network t -> Matrix t
+output = foldl activation
+```
+
+... where `activation` computes the activation of just one layer in a network.
+
 ## Usage
 
 The `example.hs` program shows an example of how to use this library.
 
 The `DeepNN` module exports data structures and functions to create, train, and use deep feed-forward neural networks:
 
-* `Network` and `Layer` are types that represent respectively a deep neural network and a single layer;
+* `Network` is a data type that represents a deep neural network;
 * `CostFunction` is the class of cost functions, whose available instances are `QuadCost` and `CrossEntCost`;
-* `infer` is the output of a neural network, given some input;
+* `output` is the output of a neural network, given some input;
 * `sgdUpdates` and `sgdUpdates'` are an infinite list of networks whose parameters are updated with SGD throughout (infinite) epochs, respectively with and without re-shuffling the dataset at each epoch;
 * `cost` is the cost of a neural network on a dataset, w.r.t. a given cost function;
 * `binAccuracy` and `catAccuracy` are the accuracies (resp. binary and categorical) of a neural network on a dataset;

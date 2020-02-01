@@ -1,10 +1,9 @@
 module DeepNN
 ( Network
-, Layer
 , CostFunction
 , QuadCost (..)
 , CrossEntCost (..)
-, infer
+, output
 , sgdUpdates
 , sgdUpdates'
 , cost
@@ -19,8 +18,8 @@ import Data.List (genericLength, maximumBy)
 import Data.Ord (comparing)
 import System.Random (StdGen, random, randomRs, mkStdGen)
 import Data.Random.Normal (normals')
+import Dataset (Dataset, shuffled)
 import Data.Matrix (Matrix, elementwise, fromLists, fromList, toLists, toList, transpose, scaleMatrix)
-import Dataset (shuffled)
 
 
 
@@ -34,35 +33,6 @@ type Layer t = (BiasMatrix t, WeightsMatrix t)
 type BiasMatrix t = Matrix t
 type WeightsMatrix t = Matrix t
 
--- a dataset is a list of input-output pairs (input first, label second)
-type Dataset t = [(Matrix t, Matrix t)]
-
-
-
--- cost functions can be applied and can be used to compute the output error of a network
-class CostFunction f where
-    appl :: (Floating t) => f -> (Matrix t -> Matrix t -> t)
-    oErr :: (Floating t) => f -> (Matrix t -> Matrix t -> Matrix t)
-
--- the quadratic cost function is a cost function
-data QuadCost = QuadCost
-instance CostFunction QuadCost where
-    appl costF = f
-        where f prediction label = (sum $ foreach (^2) (label - prediction)) / 2
-    oErr costF = f'
-        where f' zs label = elementwise (*) ((sigm zs) - label) (sigm' zs)
-              sigm  = foreach sigmoid
-              sigm' = foreach sigmoid'
-
--- the cross-entropy cost function is a cost function
-data CrossEntCost = CrossEntCost
-instance CostFunction CrossEntCost where
-    appl costF = f
-        where f prediction label = - sum (elementwise elementEntropy prediction label)
-              elementEntropy a y = (y * log a) + ((1-y) * log (1-a))
-    oErr costF = f'
-        where f' zs label = (foreach sigmoid zs) - label
-
 
 
 -- list of matrices containing the biases of each layer in a given network
@@ -73,21 +43,9 @@ biases = map fst
 weights :: Network t -> [WeightsMatrix t]
 weights = map snd
 
--- sigmoid activation of a given value
-sigmoid :: (Floating t) => t -> t
-sigmoid x = 1.0 / (1.0 + exp (-x))
-
--- derivative of the sigmoid activation at a given value
-sigmoid' :: (Floating t) => t -> t
-sigmoid' x = sigmoid x * (1.0 - sigmoid x)
-
--- result of applying a function to each element of a matrix
-foreach :: (t -> t) -> Matrix t -> Matrix t
-foreach func mat = fromLists $ map (map func) $ toLists mat
-
 -- output of a neural network, given some input
-infer :: (Floating t) => Matrix t -> Network t -> Matrix t
-infer = foldl activation
+output :: (Floating t) => Matrix t -> Network t -> Matrix t
+output = foldl activation
 
 -- activation and w.ed input of each layer, given an input to the whole network
 analyze :: (Floating t) => Matrix t -> Network t -> [(Matrix t, Matrix t)]
@@ -103,11 +61,11 @@ wdInputs input net = z:(wdInputs (foreach sigmoid z) (tail net))
 
 -- activation of one layer, given input, biases, and weights
 activation :: (Floating t) => Matrix t -> Layer t -> Matrix t
-activation input (biases, weights) = foreach sigmoid (biases + weights * input)
+activation input (bs, ws) = foreach sigmoid (bs + ws * input)
 
 -- weighted input of a layer, given input, biases, and weights
 wInput :: (Floating t) => Matrix t -> Layer t -> Matrix t
-wInput input (biases, weights) = biases + weights * input
+wInput input (bs, ws) = bs + ws * input
 
 -- gradient of a cost function w.r.t. the weights of a network
 gradientWeights :: (Floating t) => [Matrix t] -> [Matrix t] -> [Matrix t]
@@ -127,7 +85,7 @@ deltas :: (Floating t) => Network t -> [(Matrix t, Matrix t)] -> Matrix t -> [Ma
 deltas (l:[]) states label = [errWdInput]
     where errWdInput = (oErr costF) zs label
           (zs, as) = head states
-          costF = CrossEntCost -- TODO needs to become a parameter
+          costF = CrossEntCost -- TODO could become a parameter
 deltas net states label = errWdInput:nextErrs
     where errWdInput = elementwise (*) errActivation (foreach sigmoid' zs)
           errActivation = transpose nextWs * (head nextErrs)
@@ -173,13 +131,13 @@ sgdUpdates' net dataset eta = newNet:nextNets
 cost :: (CostFunction f, Floating t) => f -> Network t -> Dataset t -> t
 cost costF net dataset = (sum costs) / (genericLength costs)
     where costs = [cost input label | (input, label) <- dataset]
-          cost input label = (appl costF) (infer input net) label
+          cost input label = (appl costF) (output input net) label
 
 -- fraction of samples w. binary outcome correctly classified by a network
 binAccuracy :: (Floating t, RealFrac t) => Network t -> Dataset t -> t
 binAccuracy net dataset = (sum outcomes) / (genericLength dataset)
     where outcomes = [outcome input label | (input, label) <- dataset]
-          outcome x y = boolToNum $ toBinary (infer x net) == toBinary y
+          outcome x y = boolToNum $ toBinary (output x net) == toBinary y
           toBinary v = map round (toList v)
           boolToNum True = 1.0
           boolToNum _    = 0.0
@@ -188,24 +146,10 @@ binAccuracy net dataset = (sum outcomes) / (genericLength dataset)
 catAccuracy :: (Floating t, RealFrac t) => Network t -> Dataset t -> t
 catAccuracy net dataset = (sum outcomes) / (genericLength dataset)
     where outcomes = [outcome input label | (input, label) <- dataset]
-          outcome x y = boolToNum $ category (infer x net) == category y
+          outcome x y = boolToNum $ category (output x net) == category y
           category v = fst $ maximumBy (comparing snd) (zip [0..] (toList v))
           boolToNum True = 1.0
           boolToNum _    = 0.0
-
--- network with Double weights sampled uniformly at random from a given range
-randUniformNet :: (Double, Double) -> [Int] -> StdGen -> Network Double
-randUniformNet range [] _ = []
-randUniformNet range (size:[]) _ = []
-randUniformNet range sizes gen = randLayer:nextRandLayers
-    where randLayer = (randBiases, randWeights)
-          nextRandLayers = randUniformNet range (outSize:nextSizes) newGen
-          randBiases = fromList outSize 1 $ biasList
-          randWeights = fromList outSize inSize $ weightList
-          (biasList, weightList) = splitAt outSize randNums
-          randNums = take (outSize * (inSize + 1)) $ randomRs range gen
-          (_, newGen) = random gen :: (Int, StdGen)
-          inSize:outSize:nextSizes = sizes
 
 -- network with Double weights sampled at random from a normal distribution with mean 0 and std. deviation sqrt(n_in) for each layer
 randNet :: [Int] -> StdGen -> Network Double
@@ -223,3 +167,41 @@ randNet sizes gen = randLayer:nextRandLayers
           stdDev = 1.0 / sqrt (fromIntegral inSize)
 
 -- TODO: mini-batch size, regularization parameter, cost function parameter
+
+
+
+-- sigmoid activation of a given value
+sigmoid :: (Floating t) => t -> t
+sigmoid x = 1.0 / (1.0 + exp (-x))
+
+-- derivative of the sigmoid activation at a given value
+sigmoid' :: (Floating t) => t -> t
+sigmoid' x = sigmoid x * (1.0 - sigmoid x)
+
+-- result of applying a function to each element of a matrix
+foreach :: (t -> t) -> Matrix t -> Matrix t
+foreach func mat = fromLists $ map (map func) $ toLists mat
+
+-- cost functions can be applied and can be used to compute the output error of a network
+class CostFunction f where
+    appl :: (Floating t) => f -> (Matrix t -> Matrix t -> t)
+    oErr :: (Floating t) => f -> (Matrix t -> Matrix t -> Matrix t)
+
+-- the quadratic cost function is a cost function
+data QuadCost = QuadCost
+instance CostFunction QuadCost where
+    appl costF = f
+        where f prediction label = (sum $ foreach (^2) (label - prediction)) / 2
+    oErr costF = f'
+        where f' zs label = elementwise (*) ((sigm zs) - label) (sigm' zs)
+              sigm  = foreach sigmoid
+              sigm' = foreach sigmoid'
+
+-- the cross-entropy cost function is a cost function
+data CrossEntCost = CrossEntCost
+instance CostFunction CrossEntCost where
+    appl costF = f
+        where f prediction label = - sum (elementwise elementEntropy prediction label)
+              elementEntropy a y = (y * log a) + ((1-y) * log (1-a))
+    oErr costF = f'
+        where f' zs label = (foreach sigmoid zs) - label

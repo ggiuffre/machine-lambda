@@ -18,8 +18,8 @@ import Data.Matrix (Matrix, fromLists)
 type Sample t = Matrix t
 type Label  t = Matrix t
 
--- a dataset is a list of samples, optionally coupled to a list of labels
-data Dataset t = DataHeap [Sample t] | DataMap [Sample t] [Label t]
+-- a dataset is a list of relations between samples and labels
+type Dataset t = [(Sample t, Label t)]
 
 
 
