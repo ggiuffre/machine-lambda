@@ -6,7 +6,7 @@ module DeepNN
 , CrossEntCost (..)
 , infer
 , sgdUpdates
-, shuffSgdUpdates
+, sgdUpdates'
 , cost
 , binAccuracy
 , catAccuracy
@@ -156,18 +156,18 @@ l2Reg ws = [scaleMatrix (1 - lambda / (fromIntegral $ length w)) w | w <- ws]
     where lambda = 0.002
 
 -- infinite list of networks whose parameters are updated with SGD throughout (infinite) epochs
-sgdUpdates :: (Floating t) => Network t -> Dataset t -> t -> [Network t]
-sgdUpdates net dataset eta = newNet:nextNets
-    where newNet = last $ sgdEpoch net dataset eta
-          nextNets = sgdUpdates newNet dataset eta
-
--- infinite list of networks whose parameters are updated with SGD throughout (infinite) epochs, each time shuffling the dataset
-shuffSgdUpdates :: (Floating t) => Network t -> Dataset t -> t -> StdGen -> [Network t]
-shuffSgdUpdates net dataset eta gen = newNet:nextNets
+sgdUpdates :: (Floating t) => Network t -> Dataset t -> t -> StdGen -> [Network t]
+sgdUpdates net dataset eta gen = newNet:nextNets
     where newNet = last $ sgdEpoch net shuffledDataset eta
-          nextNets = shuffSgdUpdates newNet shuffledDataset eta newGen
+          nextNets = sgdUpdates newNet shuffledDataset eta newGen
           shuffledDataset = shuffled dataset gen
           (randInt, newGen) = random gen :: (Int, StdGen)
+
+-- infinite list of networks whose parameters are updated with SGD throughout (infinite) epochs, without re-shuffling the dataset at each epoch
+sgdUpdates' :: (Floating t) => Network t -> Dataset t -> t -> [Network t]
+sgdUpdates' net dataset eta = newNet:nextNets
+    where newNet = last $ sgdEpoch net dataset eta
+          nextNets = sgdUpdates' newNet dataset eta
 
 -- cost of a network on a dataset, for a given cost function
 cost :: (CostFunction f, Floating t) => f -> Network t -> Dataset t -> t

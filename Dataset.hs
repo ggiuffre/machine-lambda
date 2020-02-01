@@ -14,10 +14,11 @@ import Data.Matrix (Matrix, fromLists)
 
 
 
-type DataFile = IO String
+-- in a dataset, each sample and label is represented as a matrix
 type Sample t = Matrix t
 type Label  t = Matrix t
 
+-- a dataset is a list of samples, optionally coupled to a list of labels
 data Dataset t = DataHeap [Sample t] | DataMap [Sample t] [Label t]
 
 
