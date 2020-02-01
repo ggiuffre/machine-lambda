@@ -10,14 +10,18 @@ import DeepNN
 main = do
     csvData <- readFile "mnist_train_data.csv"
     csvLabels <- readFile "mnist_train_labels.csv"
+
     randGen <- getStdGen
     let dataMatrices = fromCsv csvData
         labelsMatrices = fromCsv csvLabels
-        dataset = take 200 $ zip dataMatrices labelsMatrices
-        net1 = randNet [784, 30, 10] randGen
+        dataset = take 200 $ shuffled (zip dataMatrices labelsMatrices) randGen
+
     randGen <- newStdGen
-    let (randInt, gen) = random randGen :: (Int, StdGen)
-        epochs = shuffSgdUpdates net1 dataset 0.25 gen
+    let net1 = randNet [784, 30, 10] randGen
+
+    randGen <- newStdGen
+    let epochs = shuffSgdUpdates net1 dataset 0.25 randGen
         net2 = last $ take 10 epochs
-    print $ accuracy net2 dataset
-    -- sequence $ [print $ infer m net2 | m <- dataMatrices]
+
+    print $ catAccuracy net2 dataset
+    sequence $ [print $ infer m net2 | m <- (take 4 dataMatrices)]

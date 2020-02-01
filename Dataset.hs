@@ -1,13 +1,15 @@
 module Dataset
 ( Dataset (..)
 , fromCsv
+, shuffled
 ) where
 
 
 
+import Data.List (groupBy)
 import Data.Char (isSeparator)
 import Data.Function (on)
-import Data.List (groupBy)
+import System.Random (StdGen, random, randomRs)
 import Data.Matrix (Matrix, fromLists)
 
 
@@ -28,3 +30,10 @@ fromCsv samples = [matrix $ values line | line <- lines samples]
           isDelimiter c = c == ',' || isSeparator c
           matrix l = fromLists $ map parseRow l
           parseRow r = [read r :: Double]
+
+-- random permutation of the elements in a list, given a rand. number generator
+shuffled :: [a] -> StdGen -> [a]
+shuffled list gen = if length list < 2 then list else (list!!i : r)
+    where i = head $ randomRs (0, length list - 1) newGen :: Int
+          r = shuffled (take i list ++ drop (i+1) list) newGen
+          (randInt, newGen) = random gen :: (Int, StdGen)

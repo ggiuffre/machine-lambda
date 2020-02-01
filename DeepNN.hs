@@ -8,17 +8,19 @@ module DeepNN
 , sgdUpdates
 , shuffSgdUpdates
 , cost
-, accuracy
-, shuffle
+, binAccuracy
+, catAccuracy
 , randNet
 ) where
 
 
 
+import Data.List (genericLength, maximumBy)
+import Data.Ord (comparing)
 import System.Random (StdGen, random, randomRs, mkStdGen)
 import Data.Random.Normal (normals')
-import Data.List (genericLength)
 import Data.Matrix (Matrix, elementwise, fromLists, fromList, toLists, toList, transpose, scaleMatrix)
+import Dataset (shuffled)
 
 
 
@@ -164,7 +166,7 @@ shuffSgdUpdates :: (Floating t) => Network t -> Dataset t -> t -> StdGen -> [Net
 shuffSgdUpdates net dataset eta gen = newNet:nextNets
     where newNet = last $ sgdEpoch net shuffledDataset eta
           nextNets = shuffSgdUpdates newNet shuffledDataset eta newGen
-          shuffledDataset = shuffle dataset gen
+          shuffledDataset = shuffled dataset gen
           (randInt, newGen) = random gen :: (Int, StdGen)
 
 -- cost of a network on a dataset, for a given cost function
@@ -173,21 +175,23 @@ cost costF net dataset = (sum costs) / (genericLength costs)
     where costs = [cost input label | (input, label) <- dataset]
           cost input label = (appl costF) (infer input net) label
 
--- fraction of samples correctly classified by a network
-accuracy :: (Floating t, RealFrac t) => Network t -> Dataset t -> t
-accuracy net dataset = (sum outcomes) / (genericLength dataset)
+-- fraction of samples w. binary outcome correctly classified by a network
+binAccuracy :: (Floating t, RealFrac t) => Network t -> Dataset t -> t
+binAccuracy net dataset = (sum outcomes) / (genericLength dataset)
     where outcomes = [outcome input label | (input, label) <- dataset]
-          outcome x y = boolToNum $ roundedVect (infer x net) == roundedVect y
-          roundedVect v = (map round $ toList v)
+          outcome x y = boolToNum $ toBinary (infer x net) == toBinary y
+          toBinary v = map round (toList v)
           boolToNum True = 1.0
           boolToNum _    = 0.0
 
--- random permutation of the elements in a list, given a rand. number generator
-shuffle :: [a] -> StdGen -> [a]
-shuffle list gen = if length list < 2 then list else (list!!i : r)
-    where i = head $ randomRs (0, length list - 1) newGen :: Int
-          r = shuffle (take i list ++ drop (i+1) list) newGen
-          (randInt, newGen) = random gen :: (Int, StdGen)
+-- fraction of samples w. categorical outcome correctly classified by a network
+catAccuracy :: (Floating t, RealFrac t) => Network t -> Dataset t -> t
+catAccuracy net dataset = (sum outcomes) / (genericLength dataset)
+    where outcomes = [outcome input label | (input, label) <- dataset]
+          outcome x y = boolToNum $ category (infer x net) == category y
+          category v = fst $ maximumBy (comparing snd) (zip [0..] (toList v))
+          boolToNum True = 1.0
+          boolToNum _    = 0.0
 
 -- network with Double weights sampled uniformly at random from a given range
 randUniformNet :: (Double, Double) -> [Int] -> StdGen -> Network Double
