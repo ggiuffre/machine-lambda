@@ -1,6 +1,6 @@
 # Machine Lambda
 
-A purely functional implementation of a deep feed-forward neural network, trainable with stochastic gradient descent.
+A purely functional implementation of deep feed-forward neural networks, trainable with stochastic gradient descent.
 
 ## Usage
 
@@ -21,7 +21,7 @@ The `Dataset` module currently exports two functions:
 * `fromCsv` is a dataset of 1D `Double` samples, taken from a given CSV file;
 * `shuffled` is a random permutation of the elements in a list, given a random number generator.
 
-To use a module (such as `DeepNN` for example), have `DeepNN.hs` in the search path of GHC, then `import DeepNN` inside your Haskell program.
+To use a module (such as `DeepNN` for example), have `DeepNN.hs` in the search path of GHC, then `import DeepNN` inside your Haskell program. See the example program.
 
 ## Dependencies
 
