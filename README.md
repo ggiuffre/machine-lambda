@@ -27,14 +27,15 @@ The `DeepNN` module exports data structures and functions to create, train, and 
 * `binAccuracy` and `catAccuracy` are the accuracies (resp. binary and categorical) of a neural network on a dataset;
 * `randNet` is a network with random `Double` weights sampled from a normal distribution with given mean and standard deviation.
 
-The `Dataset` module currently exports two functions:
+The `Dataset` module currently exports the following functions:
 
 * `fromCsv` is a dataset of 1D `Double` samples, taken from a given CSV file;
 * `shuffled` is a random permutation of the elements in a list, given a random number generator;
-* `foreach` is the result of applying a function to each element of a matrix.
+* `foreach` is the result of applying a function to each element of a matrix;
+* `standardized` is a list of training samples that have been standardized.
 
 To use a module (such as `DeepNN` for example), have `DeepNN.hs` in the search path of GHC, then `import DeepNN` inside your Haskell program. See the example program.
 
 ## Dependencies
 
-`DeepNN` only depends on the [`Data.matrix` module](https://hackage.haskell.org/package/matrix-0.3.6.1/docs/Data-Matrix.html). To install it, type `cabal install matrix` in a shell.
+`DeepNN` depends on several built-in Haskell modules, but also on the [`Data.matrix` module](https://hackage.haskell.org/package/matrix-0.3.6.1/docs/Data-Matrix.html): to install it, type `cabal install matrix` in a shell.
