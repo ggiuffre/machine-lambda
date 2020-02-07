@@ -2,6 +2,7 @@ module Dataset
 ( Dataset (..)
 , fromCsv
 , shuffled
+, foreach
 ) where
 
 
@@ -10,7 +11,7 @@ import Data.List (groupBy)
 import Data.Char (isSeparator)
 import Data.Function (on)
 import System.Random (StdGen, random, randomRs)
-import Data.Matrix (Matrix, fromLists)
+import Data.Matrix (Matrix, fromLists, toLists)
 
 
 
@@ -38,3 +39,7 @@ shuffled list gen = if length list < 2 then list else (list!!i : r)
     where i = head $ randomRs (0, length list - 1) newGen :: Int
           r = shuffled (take i list ++ drop (i+1) list) newGen
           (randInt, newGen) = random gen :: (Int, StdGen)
+
+-- result of applying a function to each element of a matrix
+foreach :: (t -> t) -> Matrix t -> Matrix t
+foreach func mat = fromLists $ map (map func) $ toLists mat

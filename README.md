@@ -30,7 +30,8 @@ The `DeepNN` module exports data structures and functions to create, train, and 
 The `Dataset` module currently exports two functions:
 
 * `fromCsv` is a dataset of 1D `Double` samples, taken from a given CSV file;
-* `shuffled` is a random permutation of the elements in a list, given a random number generator.
+* `shuffled` is a random permutation of the elements in a list, given a random number generator;
+* `foreach` is the result of applying a function to each element of a matrix.
 
 To use a module (such as `DeepNN` for example), have `DeepNN.hs` in the search path of GHC, then `import DeepNN` inside your Haskell program. See the example program.
 

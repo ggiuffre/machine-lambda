@@ -18,8 +18,8 @@ import Data.List (genericLength, maximumBy)
 import Data.Ord (comparing)
 import System.Random (StdGen, random, randomRs, mkStdGen)
 import Data.Random.Normal (normals')
-import Dataset (Dataset, shuffled)
-import Data.Matrix (Matrix, elementwise, fromLists, fromList, toLists, toList, transpose, scaleMatrix)
+import Dataset (Dataset, shuffled, foreach)
+import Data.Matrix (Matrix, elementwise, fromList, toList, transpose, scaleMatrix)
 
 
 
@@ -177,10 +177,6 @@ sigmoid x = 1.0 / (1.0 + exp (-x))
 -- derivative of the sigmoid activation at a given value
 sigmoid' :: (Floating t) => t -> t
 sigmoid' x = sigmoid x * (1.0 - sigmoid x)
-
--- result of applying a function to each element of a matrix
-foreach :: (t -> t) -> Matrix t -> Matrix t
-foreach func mat = fromLists $ map (map func) $ toLists mat
 
 -- cost functions can be applied and can be used to compute the output error of a network
 class CostFunction f where
