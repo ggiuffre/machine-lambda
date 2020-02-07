@@ -44,31 +44,31 @@ weights :: Network t -> [WeightsMatrix t]
 weights = map snd
 
 -- output of a neural network, given some input
-output :: (Floating t) => Matrix t -> Network t -> Matrix t
+output :: Floating t => Matrix t -> Network t -> Matrix t
 output = foldl activation
 
 -- activation and w.ed input of each layer, given an input to the whole network
-analyze :: (Floating t) => Matrix t -> Network t -> [(Matrix t, Matrix t)]
+analyze :: Floating t => Matrix t -> Network t -> [(Matrix t, Matrix t)]
 analyze input net = zip zs as
     where zs = wdInputs input net            -- weighted inputs of each layer
           as = tail $ scanl activation input net -- activations of each layer
 
 -- weighted input of each layer, given an input to the whole network
-wdInputs :: (Floating t) => Matrix t -> Network t -> [Matrix t]
+wdInputs :: Floating t => Matrix t -> Network t -> [Matrix t]
 wdInputs input [] = []
 wdInputs input net = z:(wdInputs (foreach sigmoid z) (tail net))
     where z = wInput input (head net)
 
 -- activation of one layer, given input, biases, and weights
-activation :: (Floating t) => Matrix t -> Layer t -> Matrix t
+activation :: Floating t => Matrix t -> Layer t -> Matrix t
 activation input (bs, ws) = foreach sigmoid (bs + ws * input)
 
 -- weighted input of a layer, given input, biases, and weights
-wInput :: (Floating t) => Matrix t -> Layer t -> Matrix t
+wInput :: Floating t => Matrix t -> Layer t -> Matrix t
 wInput input (bs, ws) = bs + ws * input
 
 -- gradient of a cost function w.r.t. the weights of a network
-gradientWeights :: (Floating t) => [Matrix t] -> [Matrix t] -> [Matrix t]
+gradientWeights :: Floating t => [Matrix t] -> [Matrix t] -> [Matrix t]
 gradientWeights inputs [] = []
 gradientWeights inputs errors = layerGradient:nextGradients
     where layerGradient = layerError * transpose layerInput
@@ -77,11 +77,11 @@ gradientWeights inputs errors = layerGradient:nextGradients
           layerError:nextErrors = errors
 
 -- gradient of a cost function w.r.t. the biases of a network
-gradientBiases :: (Floating t) => [Matrix t] -> [Matrix t] -> [Matrix t]
+gradientBiases :: Floating t => [Matrix t] -> [Matrix t] -> [Matrix t]
 gradientBiases inputs errors = errors
 
 -- partial derivatives of a cost function w.r.t. the weighted inputs of layers in a network
-deltas :: (Floating t) => Network t -> [(Matrix t, Matrix t)] -> Matrix t -> [Matrix t]
+deltas :: Floating t => Network t -> [(Matrix t, Matrix t)] -> Matrix t -> [Matrix t]
 deltas (l:[]) states label = [errWdInput]
     where errWdInput = (oErr costF) zs label
           (zs, as) = head states
@@ -94,7 +94,7 @@ deltas net states label = errWdInput:nextErrs
           (zs, as) = head states
 
 -- list of networks whose parameters are updated with (online) SGD throughout an epoch
-sgdEpoch :: (Floating t) => Network t -> Dataset t -> t -> [Network t]
+sgdEpoch :: Floating t => Network t -> Dataset t -> t -> [Network t]
 sgdEpoch net [] eta = []
 sgdEpoch net dataset eta = newNet:nextUpdates
     where nextUpdates = sgdEpoch newNet nextSamples eta
@@ -109,12 +109,12 @@ sgdEpoch net dataset eta = newNet:nextUpdates
           states = analyze input net
 
 -- L2 regularization of the weights of a network, before updating them with SGD
-l2Reg :: (Floating t) => [WeightsMatrix t] -> [WeightsMatrix t]
+l2Reg :: Floating t => [WeightsMatrix t] -> [WeightsMatrix t]
 l2Reg ws = [scaleMatrix (1 - lambda / (fromIntegral $ length w)) w | w <- ws]
     where lambda = 0.002
 
 -- infinite list of networks whose parameters are updated with SGD throughout (infinite) epochs
-sgdUpdates :: (Floating t) => Network t -> Dataset t -> t -> StdGen -> [Network t]
+sgdUpdates :: Floating t => Network t -> Dataset t -> t -> StdGen -> [Network t]
 sgdUpdates net dataset eta gen = newNet:nextNets
     where newNet = last $ sgdEpoch net shuffledDataset eta
           nextNets = sgdUpdates newNet shuffledDataset eta newGen
@@ -122,7 +122,7 @@ sgdUpdates net dataset eta gen = newNet:nextNets
           (randInt, newGen) = random gen :: (Int, StdGen)
 
 -- infinite list of networks whose parameters are updated with SGD throughout (infinite) epochs, without re-shuffling the dataset at each epoch
-sgdUpdates' :: (Floating t) => Network t -> Dataset t -> t -> [Network t]
+sgdUpdates' :: Floating t => Network t -> Dataset t -> t -> [Network t]
 sgdUpdates' net dataset eta = newNet:nextNets
     where newNet = last $ sgdEpoch net dataset eta
           nextNets = sgdUpdates' newNet dataset eta
@@ -171,17 +171,17 @@ randNet sizes gen = randLayer:nextRandLayers
 
 
 -- sigmoid activation of a given value
-sigmoid :: (Floating t) => t -> t
+sigmoid :: Floating t => t -> t
 sigmoid x = 1.0 / (1.0 + exp (-x))
 
 -- derivative of the sigmoid activation at a given value
-sigmoid' :: (Floating t) => t -> t
+sigmoid' :: Floating t => t -> t
 sigmoid' x = sigmoid x * (1.0 - sigmoid x)
 
 -- cost functions can be applied and can be used to compute the output error of a network
 class CostFunction f where
-    appl :: (Floating t) => f -> (Matrix t -> Matrix t -> t)
-    oErr :: (Floating t) => f -> (Matrix t -> Matrix t -> Matrix t)
+    appl :: Floating t => f -> (Matrix t -> Matrix t -> t)
+    oErr :: Floating t => f -> (Matrix t -> Matrix t -> Matrix t)
 
 -- the quadratic cost function is a cost function
 data QuadCost = QuadCost
