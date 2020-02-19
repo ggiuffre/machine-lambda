@@ -2,7 +2,7 @@
 
 A purely functional implementation of deep feed-forward neural networks, trainable with stochastic gradient descent.
 
-Why functional programming with neural networks? The goal of this library is **mathematical clarity**: the close coupling between functional programming and mathematical expressions allows to manipulate neural networks (or anything that can be expressed mathematically) by declaring expressions, rather than by implementing algorithms.
+Why functional programming with neural networks? The goal of this library is *mathematical clarity*: the close coupling between functional programming and mathematical expressions allows to manipulate neural networks (or anything that can be expressed mathematically) by declaring expressions, rather than by implementing algorithms.
 
 Approaching a problem by declaring its solution (rather than implementing an algorithm to find the solution) allows to be succint and clear. For example, here's the function that computes the output of a neural network for a given input:
 
@@ -11,7 +11,7 @@ output :: (Floating t) => Matrix t -> Network t -> Matrix t
 output = foldl activation
 ```
 
-... where `activation` computes the activation of just one layer in a network.
+... where `activation` is the activation of just one layer in a network.
 
 ## Usage
 
