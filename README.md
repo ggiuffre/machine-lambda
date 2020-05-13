@@ -1,17 +1,17 @@
 # Machine Lambda
 
-A purely functional implementation of deep feed-forward neural networks, trainable with stochastic gradient descent.
+A purely functional Haskell implementation of stochastic gradient descent for deep feed-forward neural networks.
 
-Why functional programming with neural networks? The goal of this library is *mathematical clarity*: the close coupling between functional programming and mathematical expressions allows to manipulate neural networks (or anything that can be expressed mathematically) by declaring expressions, rather than by implementing algorithms.
+Why functional programming for neural networks? The goal of this library is mathematical readability: the close coupling between functional programming and mathematical expressions allows to manipulate neural networks (or anything that can be expressed mathematically) by declaring expressions, rather than by implementing algorithms.
 
-Approaching a problem by declaring its solution (rather than implementing an algorithm to find the solution) allows to be succint and clear. For example, here's the function that computes the output of a neural network for a given input:
+Approaching a problem by declaring its solution instead of implementing an algorithm to find that solution allows the programmer to be succint and clear. For example, here's the function that computes the output of a neural network for a given input:
 
 ```haskell
 output :: (Floating t) => Matrix t -> Network t -> Matrix t
 output = foldl activation
 ```
 
-... where `activation` is the activation of just one layer in a network.
+Here, `output` is a function of two arguments: an input `Matrix` and a `Network`. `output` is defined as a [left fold](https://en.wikipedia.org/wiki/Fold_(higher-order_function)) across the layers of the network, with the input matrix as the initial state of the accumulator and the `activation` function as the combining operation.
 
 ## Usage
 
